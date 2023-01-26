@@ -1,7 +1,7 @@
 from sqlalchemy import MetaData, Table, Column, Integer, String, DECIMAL,\
-     Boolean, ForeignKeyConstraint, Enum, Date, create_engine
+     Boolean, ForeignKey, Enum, Date, UniqueConstraint, create_engine
 
-engine = create_engine('postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:${POSTGRES_PORT}/${POSTGRES_DB}', echo=True)
+engine = create_engine('postgresql://postgres:postgres@localhost:5432/cabbage_corp', echo=True)
 meta = MetaData()
 
 product_category = Table(
@@ -35,25 +35,17 @@ products = Table(
 product_categories = Table(
     'product_categories',
     meta,
-    Column('product_id', Integer, primary_key=True),
-    Column('category_id', Integer, primary_key=True),
-    Column('discount_id', Integer, primary_key=True),
-    ForeignKeyConstraint(
-        ['product_id', 'category_id', 'discount_id'],
-        ['products.product_id', 'product_category.category_id', 'discounts.discount_id']
-    )
+    Column('product_id', Integer, ForeignKey('products.product_id'), primary_key=True),
+    Column('category_id', Integer, ForeignKey('product_category.category_id'), primary_key=True),
+    Column('discount_id', Integer, ForeignKey('discounts.discount_id'), primary_key=True)
 )
 
 cart = Table(
     'cart',
     meta,
-    Column('user_id', Integer, primary_key=True),
-    Column('product_id', Integer, primary_key=True),
-    Column('cart_quantity', Integer),
-    ForeignKeyConstraint(
-        ['user_id', 'product_id'],
-        ['users.user_id', 'products.product_id']
-    )
+    Column('user_id', Integer, ForeignKey('users.user_id'), primary_key=True),
+    Column('product_id', Integer, ForeignKey('products.product_id'), primary_key=True),
+    Column('cart_quantity', Integer)
 )
 
 users = Table(
@@ -70,71 +62,50 @@ users = Table(
 user_address = Table(
     'user_address',
     meta,
-    Column('user_id', Integer, primary_key=True),
+    Column('user_id', Integer, ForeignKey('users.user_id'), primary_key=True),
     Column('address_line', String(255)),
     Column('city', String(255)),
     Column('postal_code', Integer),
-    Column('phone', String(255)),
-    ForeignKeyConstraint(
-        ['user_id'],
-        ['users.user_id']
-    )
-)
-
-user_payment = Table(
-    'user_payment',
-    meta,
-    Column('payment_id', Integer, primary_key=True),
-    Column('user_id', Integer, primary_key=True),
-    Column('order_id', Integer, primary_key=True),
-    Column('card_number', Integer),
-    Column('ccv', Integer),
-    Column('exp_date', Date),
-    ForeignKeyConstraint(
-        ['user_id', 'order_id'],
-        ['users.user_id', 'orders.order_id']
-    )
+    Column('phone', String(255))
 )
 
 orders = Table(
     'orders',
     meta,
     Column('order_id', Integer, primary_key=True),
-    Column('user_id', Integer, primary_key=True),
+    Column('user_id', Integer, ForeignKey('users.user_id'), primary_key=True),
     Column('first_name', String(255)),
     Column('last_name', String(255)),
     Column('email', String(255)),
-    ForeignKeyConstraint(
-        ['user_id'],
-        ['users.user_id']
-    )
+    UniqueConstraint('order_id')
 )
 
 product_orders = Table(
     'product_orders',
     meta,
-    Column('order_id', Integer, primary_key=True),
+    Column('order_id', Integer, ForeignKey('orders.order_id'), primary_key=True),
     Column('item_name', String(255)),
     Column('item_price', DECIMAL(4, 2)),
-    Column('item_quantity', Integer),
-    ForeignKeyConstraint(
-        ['order_id'],
-        ['orders.order_id']
-    )
+    Column('item_quantity', Integer)
 )
 
 order_totals = Table(
     'order_totals',
     meta,
     Column('total_id', Integer, primary_key=True),
-    Column('order_id', Integer, primary_key=True),
-    Column('total_amount', DECIMAL(4, 2)),
-    ForeignKeyConstraint(
-        ['order_id'],
-        ['orders.order_id']
-    )
+    Column('order_id', Integer, ForeignKey('orders.order_id'), primary_key=True),
+    Column('total_amount', DECIMAL(4, 2))
 )
 
-# create user_address, user_payment, orders, order_products, and order totals
+user_payment = Table(
+    'user_payment',
+    meta,
+    Column('payment_id', Integer, primary_key=True),
+    Column('user_id', Integer, ForeignKey('users.user_id'), primary_key=True),
+    Column('order_id', Integer, ForeignKey('orders.order_id'), primary_key=True),
+    Column('card_number', Integer),
+    Column('ccv', Integer),
+    Column('exp_date', Date)
+)
 
 meta.create_all(engine)
